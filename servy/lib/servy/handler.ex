@@ -8,9 +8,13 @@ defmodule Servy.Handler do
 
     request
     |> parse
+    |> log
     |> route
     |> format_response
   end
+
+  def log(conv), do: IO.inspect conv
+
   def parse(request) do
     [method, path, _] =
       request
@@ -18,14 +22,34 @@ defmodule Servy.Handler do
       |> List.first
       |> String.split(" ")
 
-    %{ method: method, path: path, resp_body: "" }
+    %{
+      method: method,
+      path: path,
+      resp_body: "",
+      status: nil
+    }
   end
 
+  # instead of ifelse use pattern matching
   def route(conv) do
+    route(conv, conv.method, conv.path)
+  end
 
-    # This is a shortcut for Map.put(conv, :resp_body, "Bears, Lions, Tigers")
-    # This does not change the original map but instead creates a copy with the new values
-    %{ conv | resp_body: "Bears, Lions, Tigers" }
+  def route(conv, "GET", "/wildthings") do
+    %{ conv | status: 200, resp_body: "Bears, Lions, Tigers" }
+  end
+
+  def route(conv, "GET", "/bears") do
+    %{ conv | status: 200, resp_body: "Teddy, Smokey, Paddington" }
+  end
+
+  def route(conv, "GET", "/bears/" <> id) do
+    %{ conv | status: 200, resp_body: "Bear #{id}" }
+  end
+
+  # A catch all route
+  def route(conv, _method, path) do
+    %{ conv | status: 404, resp_body: "No #{path} here!"}
   end
 
   def format_response(conv) do
@@ -34,18 +58,53 @@ defmodule Servy.Handler do
     # each literal new line is part of the heredoc
 
     """
-    HTTP/1.1 200 OK
+    HTTP/1.1 #{conv.status} #{status_reason(conv.status)}
     Content-Type: text/html
-    Content-Length: #{String.length(conv.resp_body)}
+    Content-Length: #{byte_size(conv.resp_body)}
 
     #{conv.resp_body}
     """
   end
 
+  defp status_reason(code) do
+    %{
+      200 => "OK",
+      201 => "Created",
+      401 => "Unauthorized",
+      403 => "Forbidden",
+      404 => "Not Found",
+      600 => "Internal Server Error"
+    }[code]
+  end
+
 end
 
 request = """
-GET /wildthings HTTP/1.1
+GET /bigfoot HTTP/1.1
+Host: example.com
+User-Agent: ExampleBrowser/1.0
+Accept: */*
+
+"""
+
+response = Servy.Handler.handle(request)
+
+IO.puts response
+
+request = """
+GET /bears HTTP/1.1
+Host: example.com
+User-Agent: ExampleBrowser/1.0
+Accept: */*
+
+"""
+
+response = Servy.Handler.handle(request)
+
+IO.puts response
+
+request = """
+GET /bears/1 HTTP/1.1
 Host: example.com
 User-Agent: ExampleBrowser/1.0
 Accept: */*
