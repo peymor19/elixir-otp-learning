@@ -1,186 +1,99 @@
 defmodule Servy.Handler do
   require Logger
 
+  @moduledoc "Handles HTTP requests."
+
+  alias Servy.Conv
+  alias Servy.BearController
+
+  @pages_path Path.expand("../../pages", __DIR__)
+
+  import Servy.Plugins, only: [rewrite_path: 1, log: 1, track: 1]
+  import Servy.Parser, only: [parse: 1]
+  import Servy.FileHandler, only: [handle_file: 2]
+
+  @doc "Transforms the request into a response."
   def handle(request) do
-    # conv = parse(request)
-    # conv = route(conv)
-    # format_response(conv)
-
-    # Use pipes insted
-
     request
     |> parse
     |> rewrite_path
-    |> log
+    #    |> log
     |> route
     |> track
     |> format_response
   end
 
-  def track(%{status: 404, path: path} = conv) do
-    Logger.warn "Warning: #{path} is on the loose!"
-    conv
+  def route(%Conv{ method: "GET", path: "/kaboom" } = conv) do
+    raise "Kaboom!"
   end
 
-  def track(conv), do: conv
+  def route(%Conv{ method: "GET", path: "/hibernate/" <> time } = conv) do
+    time |> String.to_integer |> :timer.sleep
 
-  # pattern matching with maps
-  def rewrite_path(%{path: "/wildlife"} = conv) do
-    %{ conv | path: "/wildthings" }
+    %{ conv | status: 200, resp_body: "Awake!" }
   end
 
-  def rewrite_path(%{path: "/bears?id=" <> id} = conv) do
-    %{ conv | path: "/bears/#{id}" }
-  end
-
-  def rewrite_path(conv), do: conv
-
-  def log(conv), do: IO.inspect conv
-
-  def parse(request) do
-    [method, path, _] =
-      request
-      |> String.split("\n")
-      |> List.first
-      |> String.split(" ")
-
-    %{
-      method: method,
-      path: path,
-      resp_body: "",
-      status: nil
-    }
-  end
-
-  # instead of ifelse use pattern matching
-  #def route(conv) do
-  #  route(conv, conv.method, conv.path)
-  #end
-
-  def route(%{ method: "GET", path: "/wildthings" } = conv) do
+  def route(%Conv{ method: "GET", path: "/wildthings" } = conv) do
     %{ conv | status: 200, resp_body: "Bears, Lions, Tigers" }
   end
 
-  def route(%{ method: "GET", path: "/bears" } = conv) do
-    %{ conv | status: 200, resp_body: "Teddy, Smokey, Paddington" }
+  def route(%Conv{ method: "GET", path: "/api/bears" } = conv) do
+    Servy.Api.BearController.index(conv)
   end
 
-  def route(%{ method: "GET", path: "/bears/" <> id } = conv) do
-    %{ conv | status: 200, resp_body: "Bear #{id}" }
+  def route(%Conv{ method: "GET", path: "/bears" } = conv) do
+    BearController.index(conv)
+  end
+
+  def route(%Conv{ method: "GET", path: "/bears/" <> id } = conv) do
+    params = Map.put(conv.params, "id", id)
+    BearController.show(conv, params)
+  end
+
+  def route(%Conv{ method: "POST", path: "/api/bears"} = conv) do
+    Servy.Api.BearController.create(conv, conv.params)
+  end
+
+  def route(%Conv{ method: "POST", path: "/bears"} = conv) do
+    BearController.create(conv, conv.params)
+  end
+
+  def route(%Conv{ method: "DELETE", path: "/bears" <> _id} = conv) do
+    BearController.delete(conv, conv.params)
+  end
+
+  def route(%Conv{ method: "GET", path: "/bears/new" } = conv) do
+      Path.expand("../../pages", __DIR__)
+      |> Path.join("form.html")
+      |> File.read
+      |> handle_file(conv)
+  end
+
+
+  def route(%Conv{ method: "GET", path: "/about" } = conv) do
+      @pages_path
+      |> Path.join("about.html")
+      |> File.read
+      |> handle_file(conv)
   end
 
   # A catch all route
-  def route(%{ path: path } = conv) do
+  def route(%Conv{ path: path } = conv) do
     %{ conv | status: 404, resp_body: "No #{path} here!"}
   end
 
-  def format_response(conv) do
+  def format_response(%Conv{} = conv) do
     # string interpolation with #{}
     # heredocs are multiline strings
     # each literal new line is part of the heredoc
 
     """
-    HTTP/1.1 #{conv.status} #{status_reason(conv.status)}
-    Content-Type: text/html
-    Content-Length: #{byte_size(conv.resp_body)}
-
+    HTTP/1.1 #{Conv.full_status(conv)}\r
+    Content-Type: #{conv.resp_content_type}\r
+    Content-Length: #{byte_size(conv.resp_body)}\r
+    \r
     #{conv.resp_body}
     """
   end
 
-  defp status_reason(code) do
-    %{
-      200 => "OK",
-      201 => "Created",
-      401 => "Unauthorized",
-      403 => "Forbidden",
-      404 => "Not Found",
-      600 => "Internal Server Error"
-    }[code]
-  end
-
 end
-
-request = """
-GET /wildthings HTTP/1.1
-Host: example.com
-User-Agent: ExampleBrowser/1.0
-Accept: */*
-
-"""
-
-response = Servy.Handler.handle(request)
-
-IO.puts response
-
-request = """
-GET /wildlife HTTP/1.1
-Host: example.com
-User-Agent: ExampleBrowser/1.0
-Accept: */*
-
-"""
-
-response = Servy.Handler.handle(request)
-
-IO.puts response
-
-request = """
-GET /bigfoot HTTP/1.1
-Host: example.com
-User-Agent: ExampleBrowser/1.0
-Accept: */*
-
-"""
-
-response = Servy.Handler.handle(request)
-
-IO.puts response
-
-request = """
-GET /bears HTTP/1.1
-Host: example.com
-User-Agent: ExampleBrowser/1.0
-Accept: */*
-
-"""
-
-response = Servy.Handler.handle(request)
-
-IO.puts response
-
-request = """
-GET /bears/1 HTTP/1.1
-Host: example.com
-User-Agent: ExampleBrowser/1.0
-Accept: */*
-
-"""
-
-response = Servy.Handler.handle(request)
-
-IO.puts response
-
-request = """
-GET /bears?id=1 HTTP/1.1
-Host: example.com
-User-Agent: ExampleBrowser/1.0
-Accept: */*
-
-"""
-
-response = Servy.Handler.handle(request)
-
-IO.puts response
-
-request = """
-GET /notfound HTTP/1.1
-Host: example.com
-User-Agent: ExampleBrowser/1.0
-Accept: */*
-
-"""
-
-response = Servy.Handler.handle(request)
-
-IO.puts response
