@@ -1,1 +1,3 @@
 # elixir-otp-learning
+
+Learning elixir...
