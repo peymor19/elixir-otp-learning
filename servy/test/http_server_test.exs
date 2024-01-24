@@ -6,9 +6,9 @@ defmodule HttpServerTest do
 
   test "accecpt a request on a socket and sends back a response using HTTPoison" do
 
-    spawn(HttpServer, :start, [4000])
+    spawn(HttpServer, :start, [3000])
 
-    {:ok, response} = HTTPoison.get("http://localhost:4000/wildthings")
+    {:ok, response} = HTTPoison.get("http://localhost:3000/wildthings")
 
     assert response.status_code == 200
     assert response.body == "Bears, Lions, Tigers"
@@ -42,17 +42,22 @@ defmodule HttpServerTest do
   test "accepts 5 concurrent requests on a socket and sends back a response" do
     spawn(HttpServer, :start, [5000])
 
-    url = "http://localhost:5000/wildthings"
-    # Spawn the client processes
-    1..5
-      |> Enum.map(fn _ -> Task.async(fn -> HTTPoison.get(url) end) end)
+    urls = [
+      "http://localhost:5000/wildthings",
+      "http://localhost:5000/bears",
+      "http://localhost:5000/bears/1",
+      "http://localhost:5000/wildlife",
+      "http://localhost:5000/api/bears",
+    ]
+
+    urls
+      |> Enum.map(&Task.async(fn -> HTTPoison.get(&1) end))
       |> Enum.map(&Task.await/1)
       |> Enum.map(&assert_successful_response/1)
   end
 
   defp assert_successful_response({:ok, response}) do
     assert response.status_code == 200
-    assert response.body == "Bears, Lions, Tigers"
   end
 
 end
