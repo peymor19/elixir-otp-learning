@@ -78,27 +78,27 @@ defmodule Servy.Counter do
 end
 
 
-alias Servy.Counter
-
-Counter.start()
-
-IO.inspect Counter.bump_count("/hello")
-IO.inspect Counter.bump_count("/hello")
-IO.inspect Counter.bump_count("/hello")
-IO.inspect Counter.bump_count("/hello")
-
-IO.inspect Counter.get_counts()
-
-IO.inspect Counter.reset()
-
-IO.inspect Counter.get_counts()
-
-IO.inspect Counter.bump_count("/hello")
-IO.inspect Counter.bump_count("/hello")
-IO.inspect Counter.bump_count("/hello")
-IO.inspect Counter.bump_count("/hello")
-
-IO.inspect Counter.get_counts()
+#alias Servy.Counter
+#
+#Counter.start()
+#
+#IO.inspect Counter.bump_count("/hello")
+#IO.inspect Counter.bump_count("/hello")
+#IO.inspect Counter.bump_count("/hello")
+#IO.inspect Counter.bump_count("/hello")
+#
+#IO.inspect Counter.get_counts()
+#
+#IO.inspect Counter.reset()
+#
+#IO.inspect Counter.get_counts()
+#
+#IO.inspect Counter.bump_count("/hello")
+#IO.inspect Counter.bump_count("/hello")
+#IO.inspect Counter.bump_count("/hello")
+#IO.inspect Counter.bump_count("/hello")
+#
+#IO.inspect Counter.get_counts()
 
 
 

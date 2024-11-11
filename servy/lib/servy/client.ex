@@ -1,7 +1,7 @@
 defmodule Servy.Client do
 
   def send_request(request) do
-    somehostinnet = 'localhost' # to make it runnable on one machine
+    somehostinnet = "localhost" # to make it runnable on one machine
 
     {:ok, socket} = :gen_tcp.connect(somehostinnet, 4000, [:binary, packet: :raw, active: false])
 

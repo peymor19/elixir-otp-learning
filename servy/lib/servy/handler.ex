@@ -5,11 +5,10 @@ defmodule Servy.Handler do
 
   alias Servy.Conv
   alias Servy.BearController
-  alias Servy.VideoCam
 
   @pages_path Path.expand("../../pages", __DIR__)
 
-  import Servy.Plugins, only: [rewrite_path: 1, log: 1, track: 1]
+  import Servy.Plugins, only: [rewrite_path: 1, track: 1]
   import Servy.Parser, only: [parse: 1]
   import Servy.FileHandler, only: [handle_file: 2]
 
@@ -49,7 +48,7 @@ defmodule Servy.Handler do
     %{ conv | status: 200, resp_body: inspect sensor_data }
   end
 
-  def route(%Conv{ method: "GET", path: "/kaboom" } = conv) do
+  def route(%Conv{ method: "GET", path: "/kaboom" }) do
     raise "Kaboom!"
   end
 
