@@ -6,7 +6,7 @@ defmodule Servy.SensorServer do
 
   defmodule State do
     defstruct sensor_data: %{},
-              refresh_interval: :timer.seconds(5)
+      refresh_interval: :timer.seconds(5)
   end
 
   # Client Interface
